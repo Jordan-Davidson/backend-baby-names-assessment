@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # BabyNames python coding exercise.
@@ -37,17 +37,45 @@ Suggested milestones for incremental development:
  - Build the [year, 'name rank', ... ] list and print it
  - Fix main() to use the extract_names list
 """
+__author__ = 'Jordan'
 
 
 def extract_names(filename):
-    """
-    Given a single file name for babyXXXX.html, returns a single list starting
-    with the year string followed by the name-rank strings in alphabetical order.
-    ['2006', 'Aaliyah 91', Aaron 57', 'Abagail 895', ' ...]
-    """
+    years = re.compile('in [0-9]+')
+    name = re.compile(r'<td>(\d+)</td><td>(\w+)</td><td>(\w+)</td>')
     names = []
-    # +++your code here+++
+    all_names = {}
+    with open(filename) as f:
+        contents = f.readlines()
+        for line in contents:
+            if 'Popularity in' in line:
+                year = years.search(line)
+            else:
+                current = name.findall(line)
+                if current:
+                    for num, boy, girl in current:
+                        if boy not in all_names:
+                            all_names[boy] = num
+                        else:
+                            all_names[boy] = str(min(int(num), int(all_names[boy])))
+                        if girl not in all_names:
+                            all_names[girl] = num
+                        else:
+                            all_names[girl] = str(min(int(num), int(all_names[girl])))
+    names.append(year.group().strip('in '))
+    sortedNames = []
+    for name in all_names:
+        sortedNames.append(name + ' ' + all_names[name])
+    sortedNames = sorted(sortedNames)
+    names += sortedNames
+    print(names)
     return names
+
+def create_summary_file(filename):
+    with open(filename + '.summary', 'w') as f:
+        text = '\n'.join(extract_names(filename)) + '\n'
+        f.write(text)
+    
 
 
 def create_parser():
@@ -66,23 +94,16 @@ def main(args):
     parser = create_parser()
     # Run the parser to collect command-line arguments into a NAMESPACE called 'ns'
     ns = parser.parse_args(args)
-
+    file_list = ns.files
+    create_summary = ns.summaryfile
     if not ns:
         parser.print_usage()
         sys.exit(1)
-
-    file_list = ns.files
-
-    # option flag
-    create_summary = ns.summaryfile
-
-    # For each filename, call `extract_names` with that single file.
-    # Format the resulting list a vertical list (separated by newline \n)
-    # Use the create_summary flag to decide whether to print the list,
-    # or to write the list to a summary file e.g. `baby1990.html.summary`
-
-    # +++your code here+++
-
+    if create_summary:
+        for _ in file_list:
+            create_summary_file(_)
+    for _ in file_list:
+        extract_names(_)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
